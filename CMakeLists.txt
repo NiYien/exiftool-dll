@@ -24,11 +24,14 @@ else()
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
     set(PERL_BUILD ./Configure -des -Dusemultiplicity
         -Dfirstmakefile=Makefile0 -Dstatic_ext=${PERL_EXTS_STRING})
-    if(CMAKE_OSX_ARCHITECTURES)
-        list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
-        list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
+    if(APPLE)
+        list(APPEND PERL_BUILD "-Accflags=-arch x86_64 -arch arm64")
+        list(APPEND PERL_BUILD "-Aldflags=-arch x86_64 -arch arm64")
     endif()
-    list(APPEND PERL_BUILD -Accflags=-fPIC -Dprivlib=${PERL_PREFIX}/lib && make -j)
+    if(UNIX AND NOT APPLE)
+        list(APPEND PERL_BUILD "-Accflags=-fPIC")
+    endif()
+    list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.a")
 endif()
@@ -53,7 +56,7 @@ if(MSVC)
 elseif(APPLE)
     target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_DARWIN PERL_USE_SAFE_PUTENV)
     target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS})
-    target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
+    target_link_options(perl INTERFACE -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -fstack-protector-strong)
 else()
     target_compile_definitions(perl INTERFACE MULTIPLICITY)
     target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS} m crypt)
@@ -70,22 +73,45 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
 add_executable(bin2obj bin2obj.c)
 set(FATPACKER ${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm)
 set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
-add_custom_command(OUTPUT packed.obj
-    COMMAND ${CMAKE_COMMAND} -P cp.cmake
-    COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
-    COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj  --arch=none
-    DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
-set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+
+if(APPLE)
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/packed.pl
+        COMMAND ${CMAKE_COMMAND} -P cp.cmake
+        COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > ${CMAKE_BINARY_DIR}/packed.pl
+        DEPENDS perl ${FATPACKER} ${LOADER})
+
+    set(PACKED_OBJ_X86_64 "${CMAKE_BINARY_DIR}/packed_x86_64.obj")
+    set(PACKED_OBJ_ARM64 "${CMAKE_BINARY_DIR}/packed_arm64.obj")
+
+    add_custom_command(OUTPUT ${PACKED_OBJ_X86_64}
+        COMMAND ${CMAKE_COMMAND} -P cp.cmake
+        COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > ${CMAKE_BINARY_DIR}/packed.pl
+        COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_BINARY_DIR}/packed.pl ${PACKED_OBJ_X86_64} --arch=x86_64
+        DEPENDS ${CMAKE_BINARY_DIR}/packed.pl bin2obj ${FATPACKER} ${LOADER})
+
+    add_custom_command(OUTPUT ${PACKED_OBJ_ARM64}
+        COMMAND ${CMAKE_COMMAND} -P cp.cmake
+        COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > ${CMAKE_BINARY_DIR}/packed.pl
+        COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_BINARY_DIR}/packed.pl ${PACKED_OBJ_ARM64} --arch=arm64
+        DEPENDS ${CMAKE_BINARY_DIR}/packed.pl bin2obj ${FATPACKER} ${LOADER})    
+
+    add_custom_command(OUTPUT packed.obj
+        COMMAND lipo -create ${PACKED_OBJ_X86_64} ${PACKED_OBJ_ARM64} -output packed.obj
+        DEPENDS ${PACKED_OBJ_X86_64} ${PACKED_OBJ_ARM64})   
+    set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+else()
+    add_custom_command(OUTPUT packed.obj
+        COMMAND ${CMAKE_COMMAND} -P cp.cmake
+        COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
+        COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj --arch=none
+        DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
+    set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+endif()
 
 add_custom_command(OUTPUT perlxsi.c
     COMMAND ${PERL_PREFIX}/perl -MExtUtils::Embed -e xsinit
     DEPENDS perl)
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
-
-add_custom_command(OUTPUT p3dci.obj
-    COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
-    DEPENDS bin2obj)
-set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
 # Build exiftool-dll C interface
 add_library(exiftool SHARED exiftool.h exiftool.c perlxsi.c packed.obj)
@@ -99,9 +125,6 @@ if(MSVC)
         DLL_VERSION=${DLL_VERSION} EXIF_VERSION=${EXIF_VERSION})
     target_sources(exiftool PRIVATE version.rc)
 endif()
-
-add_executable(test test.c p3dci.obj)
-target_link_libraries(test PRIVATE exiftool)
 
 # Install dll and headers
 install(TARGETS exiftool EXPORT exiftool)

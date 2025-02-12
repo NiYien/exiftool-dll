@@ -3,39 +3,40 @@ on:
   workflow_dispatch:
 
 jobs:
-  # linux:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
-  #     - name: Build exiftool-dll
-  #       run: |
-  #         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-  #         cmake --build build --config Release
-  #         cmake --install build --prefix install
-  #     - name: Upload artifacts
-  #       uses: actions/upload-artifact@master
-  #       with:
-  #         name: exiftool-dll-linux
-  #         path: install
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build exiftool-dll
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+          cmake --install build --prefix install
+      - name: Upload artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: exiftool-dll-linux
+          path: install
 
-  # macos:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
-  #     - name: Build exiftool-dll
-  #       run: |
-  #         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-  #         cmake --build build --config Release
-  #         cmake --install build --prefix install
-  #     - name: Upload artifacts
-  #       uses: actions/upload-artifact@master
-  #       with:
-  #         name: exiftool-dll-macos
-  #         path: install
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build exiftool-dll
+        run: |
+          export MACOSX_DEPLOYMENT_TARGET=11.0
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          cmake --build build --config Release
+          cmake --install build --prefix install
+      - name: Upload artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: exiftool-dll-macos
+          path: install
 
   windows:
     runs-on: windows-latest
