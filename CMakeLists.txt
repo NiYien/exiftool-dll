@@ -73,7 +73,7 @@ set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
 add_custom_command(OUTPUT packed.obj
     COMMAND ${CMAKE_COMMAND} -P cp.cmake
     COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
-    COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj
+    COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj  --arch=none
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
 set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 

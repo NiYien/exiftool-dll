@@ -194,7 +194,7 @@ struct mach_nlist {
     uint64_t n_value;
 };
 
-static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
+static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size, int32_t cputype) {
     /* calculate length of commands */
     uint32_t head_len = sizeof(struct mach_header);
     uint32_t cmd0_len = sizeof(struct mach_segment) + sizeof(struct mach_section);
@@ -209,12 +209,9 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     /* write out header */
     struct mach_header header = {0};
     header.magic = 0xfeedfacf;
-#ifdef __arm64__
-    header.cputype = 0x0100000c;
-#else
-    header.cputype = 0x01000007;
-    header.cpusubtype = 0x03;
-#endif
+    header.cputype = cputype;
+    if(cputype == 0x01000007)
+        header.cpusubtype = 0x03;
     header.filetype = 1;
     header.ncmds = 2;
     header.sizeofcmds = cmd0_len + cmd1_len;
@@ -355,7 +352,7 @@ static void write_coff(FILE *out, char *name, FILE *embed, uint32_t size) {
 
 int main(int argc, char *argv[]) {
     /* check input file exists */
-    if (argc != 3) return puts("Usage: bin2obj <in> <out>"), 1;
+    if (argc < 3) return puts("Usage: bin2obj <in> <out> [--arch=x86_64] [--arch=arm64]"), 1;
     FILE *embed = fopen(argv[1], "rb");
     if (!embed) return puts("Can't open input"), 1;
     FILE *out = fopen(argv[2], "wb+");
@@ -380,7 +377,15 @@ int main(int argc, char *argv[]) {
 #if defined(_WIN32)
     write_coff(out, name, embed, size);
 #elif defined(__APPLE__)
-    write_mach(out, name, embed, size);
+    int32_t mach_cputype = 0;
+    for (int i = 3; i < argc; ++i) {
+        if (strcmp(argv[i], "--arch=x86_64") == 0) {
+            mach_cputype = 0x01000007;  // CPU_TYPE_X86_64
+        } else if (strcmp(argv[i], "--arch=arm64") == 0) {
+            mach_cputype = 0x0100000c;  // CPU_TYPE_ARM64
+        }
+    }
+    write_mach(out, name, embed, size, mach_cputype);
 #else
     write_elf(out, name, embed, size);
 #endif
