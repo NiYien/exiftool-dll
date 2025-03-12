@@ -7,8 +7,15 @@
 #include <perl.h>
 
 /* defined in packed.obj by bin2obj */
+#ifndef __linux__
 extern int _packed_pl_size;
 extern char _packed_pl[];
+#else
+//The size field from objcopy causes a segfault if accessed, so we need to use the start and end instead
+//Some googling indicates this is likely from compiling with -fPIC
+extern char _binary_packed_pl_start[];
+extern char _binary_packed_pl_end[];
+#endif
 
 void xs_init(pTHX);
 
@@ -28,8 +35,8 @@ static SV *wrap_ref(exiftool_t tool, exifdata_t value) {
 /* === exiftool functions === */
 
 exiftool_t exiftool_Create(void) {
-    int argc = 4;
-    char *argv[] = { "", "-u", "-e", "0" };
+    int argc = 5;
+    char *argv[] = { "", "-u",  "0", "-e", "0" };
 
     static int sys_init = 0;
     if (!sys_init) {
@@ -43,7 +50,11 @@ exiftool_t exiftool_Create(void) {
     perl_construct(tool);
     perl_parse(tool, xs_init, argc, argv, NULL);
 
+#ifndef __linux__
     SV *code = newSVpv(_packed_pl, _packed_pl_size);
+#else
+    SV *code = newSVpv(_binary_packed_pl_start, (_binary_packed_pl_end - _binary_packed_pl_start));
+#endif
     sv_2mortal(code);
     eval_sv(code, G_SCALAR | G_RETHROW);
     return tool;
