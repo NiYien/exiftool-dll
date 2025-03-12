@@ -29,7 +29,7 @@ static SV *wrap_ref(exiftool_t tool, exifdata_t value) {
 
 exiftool_t exiftool_Create(void) {
     int argc = 3;
-    char *argv[] = { "", "-e", "0" };
+    char *argv[] = { "", "-u", "-e", "0" };
 
     static int sys_init = 0;
     if (!sys_init) {
