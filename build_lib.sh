@@ -23,7 +23,7 @@ wsl objcopy --input-target binary --output-target pe-x86-64 \
 mkdir -p build
 cd build
 cl -LD -Z7 -W3 -DEXIFTOOL_EXPORTS -DMULTIPLICITY -DPERL_IMPLICIT_SYS -DPERLDLL \
-    ../exiftool.c -I../perl5/lib/CORE -link ../packed.obj ../perl5/lib/CORE/perl536s.lib -nodefaultlib \
+    ../exiftool.c -I../perl5/lib/CORE -link ../packed.obj ../perl5/lib/CORE/perl542s.lib -nodefaultlib \
     oldnames.lib kernel32.lib user32.lib advapi32.lib ucrt.lib ws2_32.lib vcruntime.lib comctl32.lib libcmt.lib
 cl -Z7 -W3 ../test.c exiftool.lib
 test.exe
