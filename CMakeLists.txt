@@ -16,7 +16,7 @@ if(MSVC)
     list(APPEND PERL_MODULES base.pm Config_heavy.pl Tie Win32API)
     list(APPEND PERL_EXTS Win32API/File)
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
-    set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142
+    set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC140
         BUILD_STATIC=define STATIC_EXT=${PERL_EXTS_STRING})
     set(PERL_STATIC_LIB ${PERL_PREFIX}/perl542s.lib)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
