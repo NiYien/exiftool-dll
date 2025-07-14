@@ -18,7 +18,7 @@ if(MSVC)
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
     set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142 SKIP_CCHOME_CHECK=1
         BUILD_STATIC=define STATIC_EXT=${PERL_EXTS_STRING})
-    set(PERL_STATIC_LIB ${PERL_PREFIX}/perl540s.lib)
+    set(PERL_STATIC_LIB ${PERL_PREFIX}/perl536s.lib)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
 else()
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
