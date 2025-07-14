@@ -49,6 +49,13 @@ exiftool_t exiftool_Create(void) {
     return tool;
 }
 
+exiftool_t exiftool_Clone(exiftool_t tool) {
+	exiftool_t tool tool_clone = perl_clone(tool, 0);
+	PERL_SET_CONTEXT(tool_clone);
+    dTHXa(tool_clone);
+    return tool_clone;
+}
+
 void exiftool_Destroy(exiftool_t tool) {
     PERL_SET_CONTEXT(tool);
 
