@@ -28,7 +28,6 @@ extern "C" {
 
 /* Simplified subset of exiftool methods */
 DLLEXPORT exiftool_t exiftool_Create(void);
-exiftool_t exiftool_Clone(exiftool_t tool);
 DLLEXPORT void exiftool_Destroy(exiftool_t tool);
 
 DLLEXPORT exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options);
