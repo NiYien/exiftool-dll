@@ -56,6 +56,11 @@ void exiftool_Destroy(exiftool_t tool) {
     perl_free(tool);
 }
 
+void exiftool_Active(exiftool_t tool) {
+	dTHXa(tool);
+	PERL_SET_CONTEXT(tool);
+}
+
 exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
